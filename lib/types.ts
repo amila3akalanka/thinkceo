@@ -102,10 +102,22 @@ export type Attempt = {
 
 export type AttemptInput = Omit<Attempt, "xp" | "createdAt">;
 
+export type LessonResult = {
+  lessonId: string;
+  correct: number;
+  total: number;
+  xp: number;
+  completedAt: string;
+};
+
+export type LessonResultInput = Omit<LessonResult, "xp" | "completedAt">;
+
 export type Progress = {
+  displayName: string | null;
   assessment: AssessmentResult | null;
   path: ModuleId[];
   attempts: Attempt[];
+  lessons: LessonResult[];
   xp: number;
   streak: number;
   lastActive: string | null;

@@ -69,7 +69,7 @@ npm run build
 ## 6. Optional: enable accounts and synced progress (Supabase)
 
 1. Create a free project at https://supabase.com.
-2. Open **SQL Editor**, paste the contents of `supabase/migrations/0001_init.sql`, and run it.
+2. Open **SQL Editor** and run each migration in order: paste `supabase/migrations/0001_init.sql` and run it, then do the same with `supabase/migrations/0002_lesson_results.sql` (needed for the Learn section) and `supabase/migrations/0003_display_name.sql` (needed to save user names).
 3. Open **Project Settings → API** and copy the Project URL and anon public key into `.env.local`:
 
    ```

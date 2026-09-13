@@ -20,7 +20,8 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${jakarta.variable} font-sans antialiased`}>
+      {/* Browser extensions (e.g. Grammarly) add attributes to <body> before React loads; ignore those. */}
+      <body className={`${jakarta.variable} font-sans antialiased`} suppressHydrationWarning>
         <ProgressProvider>
           <div className="mx-auto min-h-dvh max-w-md">{children}</div>
         </ProgressProvider>

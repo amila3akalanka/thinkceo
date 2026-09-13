@@ -32,6 +32,11 @@ export default function PathPage() {
 
   return (
     <AppShell>
+      {progress.displayName && (
+        <p className="mb-3 text-lg font-extrabold">
+          Welcome back, <span className="text-orange-500">{progress.displayName}</span>
+        </p>
+      )}
       {!progress.assessment && (
         <div className={`${card} mb-4 flex items-center gap-4`}>
           <IconBadge name="brain" tone="violet" />

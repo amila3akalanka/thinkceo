@@ -11,6 +11,7 @@ const FEATURES = [
   { icon: "brain", tone: "soft", title: "Find your leader profile", text: "A 3-minute check on money, business sense and style." },
   { icon: "map", tone: "softOrange", title: "Get a path built for you", text: "Your weakest areas come first." },
   { icon: "target", tone: "soft", title: "Decide on real cases", text: "Netflix, LEGO, Intel, Tylenol and more." },
+  { icon: "graduation", tone: "softOrange", title: "Learn money basics", text: "CEO math, investing, property, accounting and tax in Sri Lanka." },
 ] as const;
 
 const FLOATING = ["film", "cpu", "coffee", "blocks", "plane", "pizza"];
@@ -78,7 +79,10 @@ export default function Home() {
       </div>
 
       <footer className="pt-6 text-center text-xs text-violet-900/50">
-        Test project by Amila Akalanka 2026 Sep
+        Test project by Amila Akalanka 2026 Sep ·{" "}
+        <Link href="/about" className="font-bold text-violet-600">
+          About
+        </Link>
       </footer>
     </div>
   );

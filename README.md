@@ -9,6 +9,8 @@ A mobile-first web app that trains you to think like a CEO. It assesses your fin
 - **Case play**: a short setup, 3-4 options and a confidence slider. The reveal shows the best move, what the company really did, the outcome, the lesson and the source.
 - **AI coach**: "Explain more" generates a short, personalised explanation from the curated case facts.
 - **Progress**: XP, day streaks, a profile that updates as you play, pattern reflections and a confidence calibration check.
+- **Learn**: 14 short lessons in 5 categories (CEO Math, Investing in Sri Lanka, Real Estate, Basic Accounting, Corporate Taxes). Each lesson is a few swipeable cards followed by a quiz of up to 5 questions, mixing multiple choice with calculation questions (ROI, break-even, stamp duty, VAT and more). Sri Lanka tax, legal and investing facts link to official sources and show when they were checked.
+- **Badges and ranks**: 13 badges for playing cases and finishing lessons, plus a career rank from Intern to CEO based on XP. Badges are calculated from existing progress, so they add no database storage.
 - **Guest mode or accounts**: runs with no setup (progress stored in localStorage). Add Supabase keys to enable Google or magic-link sign-in with synced progress.
 
 ## Stack (free tiers)
@@ -30,7 +32,7 @@ Open http://localhost:3000.
 ### Enable accounts (optional)
 
 1. Create a free project at https://supabase.com.
-2. Run `supabase/migrations/0001_init.sql` in the SQL editor.
+2. Run the files in `supabase/migrations/` in order (`0001`, `0002`, `0003`) in the SQL editor.
 3. Under Authentication → URL Configuration, add `http://localhost:3000/auth/callback` (and your Vercel URL) to the redirect URLs. Enable the Google provider if you want Google sign-in.
 4. Put the project URL and anon key in `.env.local`.
 

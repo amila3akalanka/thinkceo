@@ -1,18 +1,32 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { BADGES, earnedBadgeIds, type Badge } from "@/lib/badges";
 import { emptyProgress } from "@/lib/progress";
 import { getStore, type SessionUser } from "@/lib/store";
 import { getSupabase } from "@/lib/supabase";
-import type { AssessmentResult, Attempt, AttemptInput, ModuleId, Progress } from "@/lib/types";
+import type {
+  AssessmentResult,
+  Attempt,
+  AttemptInput,
+  LessonResult,
+  LessonResultInput,
+  ModuleId,
+  Progress,
+} from "@/lib/types";
 
 type ProgressContextValue = {
   progress: Progress | null;
   user: SessionUser | null;
   error: string | null;
+  /** Badges earned since the page loaded, shown one at a time as a toast. */
+  unlocked: Badge[];
+  dismissUnlocked(): void;
   refresh(): Promise<void>;
   saveAssessment(result: AssessmentResult, path: ModuleId[]): Promise<void>;
   recordAttempt(input: AttemptInput): Promise<Attempt>;
+  recordLesson(input: LessonResultInput): Promise<LessonResult>;
+  saveDisplayName(name: string): Promise<void>;
   signOut(): Promise<void>;
 };
 
@@ -24,12 +38,24 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState<Badge[]>([]);
+  // Earned badges from the previous load, per account, so signing in doesn't replay old badges.
+  const baseline = useRef<{ account: string; ids: Set<string> } | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const { store, user } = await getStore();
+      const next = await store.getProgress();
+      const account = user?.email ?? "guest";
+      const ids = earnedBadgeIds(next);
+      const previous = baseline.current;
+      if (previous && previous.account === account) {
+        const fresh = BADGES.filter((b) => ids.has(b.id) && !previous.ids.has(b.id));
+        if (fresh.length) setUnlocked((queue) => [...queue, ...fresh]);
+      }
+      baseline.current = { account, ids };
       setUser(user);
-      setProgress(await store.getProgress());
+      setProgress(next);
       setError(null);
     } catch (e) {
       setError(message(e));
@@ -62,13 +88,48 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  const recordLesson = useCallback(
+    async (input: LessonResultInput) => {
+      const { store } = await getStore();
+      const result = await store.recordLesson(input);
+      await refresh();
+      return result;
+    },
+    [refresh],
+  );
+
+  const saveDisplayName = useCallback(
+    async (name: string) => {
+      const { store } = await getStore();
+      await store.saveDisplayName(name);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const signOut = useCallback(async () => {
     await getSupabase()?.auth.signOut();
     await refresh();
   }, [refresh]);
 
+  const dismissUnlocked = useCallback(() => setUnlocked((queue) => queue.slice(1)), []);
+
   return (
-    <ProgressContext.Provider value={{ progress, user, error, refresh, saveAssessment, recordAttempt, signOut }}>
+    <ProgressContext.Provider
+      value={{
+        progress,
+        user,
+        error,
+        unlocked,
+        dismissUnlocked,
+        refresh,
+        saveAssessment,
+        recordAttempt,
+        recordLesson,
+        saveDisplayName,
+        signOut,
+      }}
+    >
       {children}
     </ProgressContext.Provider>
   );

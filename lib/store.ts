@@ -1,13 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { applyAttempt, emptyProgress } from "./progress";
+import { applyAttempt, applyLessonResult, emptyProgress } from "./progress";
 import { getSupabase } from "./supabase";
-import type { AssessmentResult, Attempt, AttemptInput, ModuleId, Progress } from "./types";
+import type {
+  AssessmentResult,
+  Attempt,
+  AttemptInput,
+  LessonResult,
+  LessonResultInput,
+  ModuleId,
+  Progress,
+} from "./types";
 
 export interface ProgressStore {
   kind: "local" | "cloud";
   getProgress(): Promise<Progress>;
   saveAssessment(result: AssessmentResult, path: ModuleId[]): Promise<void>;
   recordAttempt(input: AttemptInput): Promise<Attempt>;
+  recordLesson(input: LessonResultInput): Promise<LessonResult>;
+  saveDisplayName(name: string): Promise<void>;
 }
 
 export type SessionUser = { email: string | null };
@@ -44,14 +54,33 @@ export const localStore: ProgressStore = {
     writeLocal(progress);
     return attempt;
   },
+  async recordLesson(input) {
+    const { progress, result } = applyLessonResult(readLocal(), input, new Date());
+    writeLocal(progress);
+    return result;
+  },
+  async saveDisplayName(name) {
+    writeLocal({ ...readLocal(), displayName: name });
+  },
 };
 
 function cloudStore(sb: SupabaseClient, userId: string): ProgressStore {
+  async function saveProfile(progress: Progress) {
+    const { error } = await sb.from("profiles").upsert({
+      user_id: userId,
+      xp: progress.xp,
+      streak: progress.streak,
+      last_active: progress.lastActive,
+    });
+    if (error) throw error;
+  }
+
   const store: ProgressStore = {
     kind: "cloud",
     async getProgress() {
-      const [profile, assessment, path, attempts] = await Promise.all([
-        sb.from("profiles").select("xp, streak, last_active").eq("user_id", userId).maybeSingle(),
+      const [profile, assessment, path, attempts, lessons] = await Promise.all([
+        // "*" so the app keeps working before migration 0003 adds display_name.
+        sb.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         sb
           .from("assessment_results")
           .select("scores, archetype, created_at")
@@ -65,11 +94,19 @@ function cloudStore(sb: SupabaseClient, userId: string): ProgressStore {
           .select("scenario_id, option_id, score, confidence, xp, created_at")
           .eq("user_id", userId)
           .order("created_at"),
+        sb
+          .from("lesson_results")
+          .select("lesson_id, correct, total, xp, created_at")
+          .eq("user_id", userId)
+          .order("created_at"),
       ]);
       const failed = [profile, assessment, path, attempts].find((r) => r.error);
       if (failed?.error) throw failed.error;
+      // Keep the rest of the app working if migration 0002 hasn't been run yet.
+      if (lessons.error) console.warn("lesson_results unavailable:", lessons.error.message);
 
       return {
+        displayName: profile.data?.display_name ?? null,
         assessment: assessment.data
           ? {
               scores: assessment.data.scores,
@@ -85,6 +122,13 @@ function cloudStore(sb: SupabaseClient, userId: string): ProgressStore {
           confidence: a.confidence,
           xp: a.xp,
           createdAt: a.created_at,
+        })),
+        lessons: (lessons.data ?? []).map((l) => ({
+          lessonId: l.lesson_id,
+          correct: l.correct,
+          total: l.total,
+          xp: l.xp,
+          completedAt: l.created_at,
         })),
         xp: profile.data?.xp ?? 0,
         streak: profile.data?.streak ?? 0,
@@ -111,14 +155,25 @@ function cloudStore(sb: SupabaseClient, userId: string): ProgressStore {
         xp: attempt.xp,
       });
       if (inserted.error) throw inserted.error;
-      const profile = await sb.from("profiles").upsert({
-        user_id: userId,
-        xp: progress.xp,
-        streak: progress.streak,
-        last_active: progress.lastActive,
-      });
-      if (profile.error) throw profile.error;
+      await saveProfile(progress);
       return attempt;
+    },
+    async recordLesson(input) {
+      const { progress, result } = applyLessonResult(await store.getProgress(), input, new Date());
+      const inserted = await sb.from("lesson_results").insert({
+        user_id: userId,
+        lesson_id: result.lessonId,
+        correct: result.correct,
+        total: result.total,
+        xp: result.xp,
+      });
+      if (inserted.error) throw inserted.error;
+      await saveProfile(progress);
+      return result;
+    },
+    async saveDisplayName(name) {
+      const { error } = await sb.from("profiles").upsert({ user_id: userId, display_name: name });
+      if (error) throw error;
     },
   };
   return store;

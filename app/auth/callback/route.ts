@@ -8,18 +8,22 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const failed = NextResponse.redirect(`${origin}/login?error=link`);
 
-  if (code && url && anonKey) {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(url, anonKey, {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
-      },
-    });
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(`${origin}/login`);
-  }
+  // Supabase adds ?error=... when a link is expired or already used.
+  if (searchParams.has("error") || !code || !url || !anonKey) return failed;
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
+    },
+  });
+
+  // Fails when the link is opened in a different browser from the one that requested it.
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return failed;
 
   return NextResponse.redirect(`${origin}/path`);
 }

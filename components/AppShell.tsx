@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { nextScenario } from "@/lib/pathBuilder";
 import { displayStreak } from "@/lib/progress";
 import { Icon, IconBadge } from "./Icon";
+import { NamePrompt } from "./NamePrompt";
 import { useProgress } from "./ProgressProvider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { progress, error } = useProgress();
+  const { progress, error, unlocked, dismissUnlocked } = useProgress();
   const pathname = usePathname();
   const next = progress ? nextScenario(progress.path, progress.attempts) : null;
   const streak = progress ? displayStreak(progress, new Date()) : 0;
+  const badge = unlocked[0];
 
   const nav = [
     { href: "/path", label: "Path", icon: "map", match: "/path" },
+    { href: "/learn", label: "Learn", icon: "graduation", match: "/learn" },
     { href: next ? `/play/${next.id}` : "/path", label: "Play", icon: "play", match: "/play" },
     { href: "/profile", label: "Profile", icon: "user", match: "/profile" },
   ];
@@ -35,6 +39,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Icon name="star" className="h-4 w-4" />
             {progress?.xp ?? 0} XP
           </span>
+          {progress?.displayName && (
+            <Link
+              href="/profile"
+              title={progress.displayName}
+              aria-label={`Profile of ${progress.displayName}`}
+              className="grid h-8 w-8 place-items-center rounded-full bg-linear-to-br from-orange-300 to-orange-500 text-sm font-extrabold text-white"
+            >
+              {progress.displayName[0].toUpperCase()}
+            </Link>
+          )}
         </div>
       </header>
 
@@ -46,7 +60,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 px-5 pt-2 pb-28">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t border-violet-100 bg-white/95 px-4 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur">
+      <AnimatePresence>
+        {badge && (
+          <motion.div
+            key={badge.id}
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            className="fixed inset-x-0 bottom-24 z-20 mx-auto max-w-md px-5"
+          >
+            <div className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-xl shadow-violet-300/50 ring-2 ring-orange-300">
+              <motion.span initial={{ rotate: -20, scale: 0.5 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring" }}>
+                <IconBadge name={badge.icon} tone="orange" />
+              </motion.span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-orange-600 uppercase">Badge unlocked</p>
+                <p className="font-extrabold">{badge.title}</p>
+                <p className="text-xs text-violet-900/60">{badge.description}</p>
+              </div>
+              <Link href="/profile" onClick={dismissUnlocked} className="text-sm font-bold text-violet-600">
+                View
+              </Link>
+              <button type="button" onClick={dismissUnlocked} aria-label="Dismiss" className="text-violet-300">
+                <Icon name="x" className="h-5 w-5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <NamePrompt />
+
+      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t border-violet-100 bg-white/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur">
         {nav.map((item) => {
           const active = pathname.startsWith(item.match);
           return (

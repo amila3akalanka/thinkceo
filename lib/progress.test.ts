@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { applyAttempt, displayStreak, emptyProgress } from "./progress";
+import { applyAttempt, applyLessonResult, displayStreak, emptyProgress, lessonXp } from "./progress";
+
+describe("applyLessonResult", () => {
+  const lesson = { lessonId: "roi-and-payback", correct: 4, total: 5 };
+
+  it("awards XP once per lesson, with a perfect-score bonus", () => {
+    expect(lessonXp(5, 5, true)).toBe(40);
+    const { progress, result } = applyLessonResult(emptyProgress(), lesson, new Date(2026, 8, 13, 12));
+    expect(result.xp).toBe(30);
+    expect(progress.xp).toBe(30);
+    expect(progress.streak).toBe(1);
+    expect(applyLessonResult(progress, { ...lesson, correct: 5 }, new Date(2026, 8, 13, 13)).result.xp).toBe(0);
+  });
+});
 
 const input = { scenarioId: "kodak-digital-1975", optionId: "b", score: 90, confidence: 80 };
 const day = (d: number) => new Date(2026, 8, d, 12);
