@@ -1,103 +1,81 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Icon, IconBadge } from "@/components/Icon";
+import { useProgress } from "@/components/ProgressProvider";
+import { btnGhost, btnPrimary, card } from "@/components/ui";
+import { supabaseConfigured } from "@/lib/supabase";
+
+const FEATURES = [
+  { icon: "brain", tone: "soft", title: "Find your leader profile", text: "A 3-minute check on money, business sense and style." },
+  { icon: "map", tone: "softOrange", title: "Get a path built for you", text: "Your weakest areas come first." },
+  { icon: "target", tone: "soft", title: "Decide on real cases", text: "Netflix, LEGO, Intel, Tylenol and more." },
+] as const;
+
+const FLOATING = ["film", "cpu", "coffee", "blocks", "plane", "pizza"];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { progress, user } = useProgress();
+  const started = Boolean(progress?.assessment);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  return (
+    <div className="flex min-h-dvh flex-col px-5 py-8">
+      <div className="relative mx-auto mt-4 mb-6 grid h-44 w-full place-items-center">
+        {FLOATING.map((name, i) => {
+          const angle = (i / FLOATING.length) * Math.PI * 2;
+          // Round so server and client render identical style strings (avoids hydration mismatch).
+          const x = Math.round(Math.cos(angle) * 120) - 18;
+          const y = Math.round(Math.sin(angle) * 62) - 18;
+          return (
+            <motion.span
+              key={name}
+              className="absolute"
+              style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
+            >
+              <IconBadge name={name} tone={i % 2 ? "softOrange" : "soft"} size="sm" />
+            </motion.span>
+          );
+        })}
+        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+          <IconBadge name="crown" tone="violet" size="lg" />
+        </motion.div>
+      </div>
+
+      <h1 className="text-center text-4xl font-extrabold tracking-tight">
+        Think like a <span className="text-orange-500">CEO</span>.
+      </h1>
+      <p className="mt-3 text-center text-violet-900/70">
+        Real business dilemmas. Two-minute decisions. See what actually happened.
+      </p>
+
+      <div className="mt-8 space-y-3">
+        {FEATURES.map((f) => (
+          <div key={f.title} className={`${card} flex items-center gap-4 p-4`}>
+            <IconBadge name={f.icon} tone={f.tone} />
+            <div>
+              <p className="font-bold">{f.title}</p>
+              <p className="text-sm text-violet-900/60">{f.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-auto space-y-3 pt-8">
+        {progress && (
+          <Link href={started ? "/path" : "/onboarding"} className={btnPrimary}>
+            {started ? "Continue your path" : "Take the 3-minute assessment"}
+            <Icon name="arrowRight" />
+          </Link>
+        )}
+        {supabaseConfigured && !user && (
+          <Link href="/login" className={btnGhost}>
+            <Icon name="login" /> Sign in to save progress
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
