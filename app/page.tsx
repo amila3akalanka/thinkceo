@@ -76,6 +76,10 @@ export default function Home() {
           </Link>
         )}
       </div>
+
+      <footer className="pt-6 text-center text-xs text-violet-900/50">
+        Test project by Amila Akalanka 2026 Sep
+      </footer>
     </div>
   );
 }
